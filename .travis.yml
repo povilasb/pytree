@@ -6,3 +6,6 @@ python:
 
 script:
   - make test
+
+after_success:
+  - coveralls
