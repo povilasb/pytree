@@ -4,6 +4,8 @@ NOTE: this module is "a good enough": it's far from complete implementation,
 but has all the functionality needed at the moment.
 """
 
+from Queue import Queue
+
 class Tree(object):
     """Tree data structure.
     """
@@ -70,3 +72,27 @@ class Tree(object):
                 node = c.traverse(predicate)
 
             return node
+
+    def traverse_breadth_first(self, predicate):
+        """Traverses tree using breadth first search strategy.
+
+        Applies the specified predicate for each traversed node.
+        Stops when thre predicate returns true.
+
+        Args:
+            predicate (callable): same as in traverse().
+
+        Returns:
+            Tree: tree node for which the specified predicate returns True.
+                None if no nodes satisfies the predicate.
+        """
+        nodes_to_visit = Queue()
+        nodes_to_visit.put(self)
+
+        while not nodes_to_visit.empty():
+            current_node = nodes_to_visit.get()
+            if predicate(current_node):
+                return current_node
+
+            for child in current_node.children:
+                nodes_to_visit.put(child)

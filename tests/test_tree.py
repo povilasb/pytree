@@ -2,6 +2,17 @@ from hamcrest import assert_that, is_, instance_of, equal_to
 
 from tree import Tree
 
+def make_visit_all(stop_for_value=None):
+    visited = []
+
+    def visit_all(node):
+        visited.append(node.value)
+        if node.value == stop_for_value:
+            return True
+        return False
+
+    return visit_all, visited
+
 def test_constructor_sets_node_value():
     t = Tree('a')
 
@@ -52,11 +63,7 @@ def test_traverse_uses_depth_first_strategy():
     child.add_child('e')
     t.add_child('c')
 
-    visited = []
-    def visit_all(node):
-        visited.append(node.value)
-        return False
-
+    visit_all, visited = make_visit_all()
     t.traverse(visit_all)
 
     assert_that(visited, is_(['a', 'b', 'd', 'e', 'c']))
@@ -69,3 +76,59 @@ def test_find_returns_node_with_the_specified_value_when_such_exists():
     node = t.find('d')
 
     assert_that(node.children[0].value, is_('e'))
+
+def test_traverse_breadth_calls_the_specified_predicate_only_for_root_node_when_it_has_no_children():
+    t = Tree('a')
+
+    visit_all, visited = make_visit_all()
+    t.traverse_breadth_first(visit_all)
+
+    assert_that(visited, is_(['a']))
+
+def test_traverse_breadth_uses_breadth_first_strategy():
+    t = Tree('a')
+    child = t.add_child('b')
+    child.add_child('d')
+    child.add_child('e')
+    t.add_child('c')
+
+    visit_all, visited = make_visit_all()
+    t.traverse_breadth_first(visit_all)
+
+    assert_that(visited, is_(['a', 'b', 'c', 'd', 'e']))
+
+def test_traverse_breadth_stops_when_predicate_returns_true():
+    t = Tree('a')
+    child = t.add_child('b')
+    child.add_child('d')
+    child.add_child('e')
+    t.add_child('c')
+
+    visit_all, visited = make_visit_all(stop_for_value='c')
+    t.traverse_breadth_first(visit_all)
+
+    assert_that(visited, is_(['a', 'b', 'c']))
+
+def test_traverse_breadth_returns_current_node_for_which_predicate_returns_true():
+    t = Tree('a')
+    child = t.add_child('b')
+    child.add_child('d')
+    child.add_child('e')
+    t.add_child('c')
+
+    visit_all, _ = make_visit_all(stop_for_value='c')
+    found_node = t.traverse_breadth_first(visit_all)
+
+    assert_that(found_node.value, is_('c'))
+
+def test_traverse_breadth_returns_none_if_predicate_never_returns_true():
+    t = Tree('a')
+    child = t.add_child('b')
+    child.add_child('d')
+    child.add_child('e')
+    t.add_child('c')
+
+    visit_all, _ = make_visit_all(stop_for_value=None)
+    found_node = t.traverse_breadth_first(visit_all)
+
+    assert_that(found_node, is_(None))
