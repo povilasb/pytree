@@ -4,6 +4,10 @@ from tree import Tree
 
 def make_tree_visitor(stop_for_value=None):
     """Contructs tree visitor predicate.
+
+    Args:
+        stop_for_value (any): makes a predicate to return True when
+            currently traversed node has this value.
     """
     visited = []
 
