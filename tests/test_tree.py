@@ -1,23 +1,34 @@
 from hamcrest import assert_that, is_, equal_to
+import pytest
 
 from tree import Tree
 
-def make_tree_visitor(stop_for_value=None):
-    """Contructs tree visitor predicate.
+class TreeVisitor:
+    """Cllable predicate used to traverse tree.
 
-    Args:
-        stop_for_value (any): makes a predicate to return True when
-            currently traversed node has this value.
+    Use self.visited_nodes to test how nodes were visited.
     """
-    visited = []
+    def __init__(self, stop_for_value=None):
+        """
+        Args:
+            stop_for_value (any): makes a predicate to return True when
+                currently traversed node has this value.
+        """
+        self.visited_nodes = []
+        self.stop_for_value = stop_for_value
 
-    def visit_all(node):
-        visited.append(node.value)
-        if node.value == stop_for_value:
-            return True
-        return False
+    def __call__(self, node):
+        """This method is applied for every visited tree node.
 
-    return visit_all, visited
+        Returns:
+            bool: True if current node value matches the self.stop_for_value.
+        """
+        self.visited_nodes.append(node.value)
+        return node.value == self.stop_for_value
+
+@pytest.fixture()
+def tree_visitor():
+    return TreeVisitor()
 
 def make_test_tree():
     """Constructs basic tree for tests.
@@ -73,13 +84,12 @@ def test_traverse_returns_self_when_operation_returns_true_on_root_node():
 
     assert_that(node, is_(t))
 
-def test_traverse_uses_depth_first_strategy():
+def test_traverse_uses_depth_first_strategy(tree_visitor):
     t = make_test_tree()
 
-    visit_all, visited = make_tree_visitor()
-    t.traverse(visit_all)
+    t.traverse(tree_visitor)
 
-    assert_that(visited, is_(['a', 'b', 'd', 'e', 'c']))
+    assert_that(tree_visitor.visited_nodes, is_(['a', 'b', 'd', 'e', 'c']))
 
 def test_find_returns_node_with_the_specified_value_when_such_exists():
     t = Tree('a')
@@ -90,42 +100,40 @@ def test_find_returns_node_with_the_specified_value_when_such_exists():
 
     assert_that(node.children[0].value, is_('e'))
 
-def test_traverse_breadth_calls_the_specified_predicate_only_for_root_node_when_it_has_no_children():
+def test_traverse_breadth_calls_the_specified_predicate_only_for_root_node_when_it_has_no_children(tree_visitor):
     t = Tree('a')
 
-    visit_all, visited = make_tree_visitor()
-    t.traverse_breadth_first(visit_all)
+    t.traverse_breadth_first(tree_visitor)
 
-    assert_that(visited, is_(['a']))
+    assert_that(tree_visitor.visited_nodes, is_(['a']))
 
-def test_traverse_breadth_uses_breadth_first_strategy():
+def test_traverse_breadth_uses_breadth_first_strategy(tree_visitor):
     t = make_test_tree()
 
-    visit_all, visited = make_tree_visitor()
-    t.traverse_breadth_first(visit_all)
+    t.traverse_breadth_first(tree_visitor)
 
-    assert_that(visited, is_(['a', 'b', 'c', 'd', 'e']))
+    assert_that(tree_visitor.visited_nodes, is_(['a', 'b', 'c', 'd', 'e']))
 
-def test_traverse_breadth_stops_when_predicate_returns_true():
+def test_traverse_breadth_stops_when_predicate_returns_true(tree_visitor):
     t = make_test_tree()
 
-    visit_all, visited = make_tree_visitor(stop_for_value='c')
-    t.traverse_breadth_first(visit_all)
+    tree_visitor.stop_for_value = 'c'
+    t.traverse_breadth_first(tree_visitor)
 
-    assert_that(visited, is_(['a', 'b', 'c']))
+    assert_that(tree_visitor.visited_nodes, is_(['a', 'b', 'c']))
 
-def test_traverse_breadth_returns_current_node_for_which_predicate_returns_true():
+def test_traverse_breadth_returns_current_node_for_which_predicate_returns_true(tree_visitor):
     t = make_test_tree()
 
-    visit_all, _ = make_tree_visitor(stop_for_value='c')
-    found_node = t.traverse_breadth_first(visit_all)
+    tree_visitor.stop_for_value = 'c'
+    found_node = t.traverse_breadth_first(tree_visitor)
 
     assert_that(found_node.value, is_('c'))
 
-def test_traverse_breadth_returns_none_if_predicate_never_returns_true():
+def test_traverse_breadth_returns_none_if_predicate_never_returns_true(tree_visitor):
     t = make_test_tree()
 
-    visit_all, _ = make_tree_visitor(stop_for_value=None)
-    found_node = t.traverse_breadth_first(visit_all)
+    tree_visitor.stop_for_value = None
+    found_node = t.traverse_breadth_first(tree_visitor)
 
     assert_that(found_node, is_(None))
