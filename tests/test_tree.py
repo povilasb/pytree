@@ -1,4 +1,4 @@
-from hamcrest import assert_that, is_, instance_of, equal_to
+from hamcrest import assert_that, is_, equal_to
 
 from tree import Tree
 
